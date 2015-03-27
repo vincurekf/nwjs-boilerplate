@@ -1,0 +1,33 @@
+body {
+  box-shadow: 0 0px 0 3px #e0e0e0 inset; }
+
+.top-titlebar {
+  background-color: #333333;
+  -webkit-user-select: none;
+  -webkit-app-region: drag;
+  color: #fff;
+  height: 4rem;
+  line-height: 4rem;
+  width: 100vw; }
+  .top-titlebar i {
+    font-size: 4rem; }
+  .top-titlebar .close-button, .top-titlebar .minimize-button {
+    -webkit-app-region: no-drag;
+    cursor: pointer;
+    /*
+    position: absolute;
+    right: 0;
+    */
+    float: right;
+    text-align: center;
+    width: 4rem; }
+    .top-titlebar .close-button:hover, .top-titlebar .minimize-button:hover {
+      background-color: #ee3344; }
+  .top-titlebar .logo-icon {
+    position: absolute;
+    left: 1rem; }
+  .top-titlebar .title {
+    position: absolute;
+    left: 5rem; }
+
+/*# sourceMappingURL=app.css.map */
