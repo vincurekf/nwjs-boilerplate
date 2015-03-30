@@ -12,11 +12,16 @@ var mainwin, maingui,
     safeExit = true;
 
 var viewbox = {
-  initialize: function( setTray ){
+  init: function( setTray ){
     window.onload = function() {
       maingui = require('nw.gui');
       mainwin = maingui.Window.get();
-
+      // get the screen resolution
+      maingui.Screen.Init();
+      var screens = maingui.Screen.screens;
+      workscreen = screens[0];
+      console.log( workscreen );
+      // attach actions to UI buttons
       $("#close-window-button").on('click', function() {
         //
         mainwin.close();
@@ -25,54 +30,57 @@ var viewbox = {
         //
         mainwin.minimize();
       });
-
+      // listen to window events
       mainwin.on('close', function(){
         console.log('saveState', saveState)
         if( saveState ){
           viewbox.save();
         }else{
+          // used for blocking window when saving data
+          // this must be 'true' in order to close to window
           safeExit = true;
         };
+        // so close only if we have saved the data to database
         this.close(safeExit);
       });
       mainwin.on('minimize', function(){
         saveState = false;
         if( minimizeToTray ){
-          mainwin.hide();
+          this.hide();
+          viewbox.showTray();
         }
-        viewbox.showTray();
       });
       mainwin.on('restore', function(){
         //
         saveState = true;
       });
+      // preset saving varibla to delay actions after move and resize events 
       var saving;
       mainwin.on('move', function(){
+        // reset timeout
         clearTimeout(saving);
+        // set timeout
         saving = setTimeout(function(){ 
+          // if there is notthing happening
+          // save data to db
           viewbox.save();
-        }, 500);
+        }, 100);
       });
       mainwin.on('resize', function(){
         clearTimeout(saving);
         saving = setTimeout(function(){ 
           viewbox.save();
-        }, 500);
+        }, 100);
       });
       viewbox.get( setTray );
     }
     window.onfocus = function() { 
       console.log("focus");
-      focusTitlebar(true);
+      viewbox.focus(true);
     }
     window.onblur = function() { 
       console.log("blur");
-      focusTitlebar(false);
-    }
-    var focusTitlebar = function (focus) {
-      var opacity = focus ? "1" : "0.9";
-      var titlebar = $("#top-titlebar");
-      if (titlebar) titlebar.css('background-color', 'rgba(33,33,33,'+opacity+')' );
+      viewbox.focus(false);
     }
   },
   get: function( setTray ){
@@ -101,6 +109,7 @@ var viewbox = {
   },
   save: function(){
     if ( saveState ){
+      // get needed dtada like position, size
       var state = {
         xpos: mainwin.x,
         ypos: mainwin.y,
@@ -108,6 +117,7 @@ var viewbox = {
         height: mainwin.height,
         totray: minimizeToTray
       };
+      // save the data to database
       localforage.setItem('windowstate', state, function(err, value) {
         console.log( value );
         safeExit = true;
@@ -115,24 +125,28 @@ var viewbox = {
     }
   },
   showTray: function(){
-    tray = tray || new maingui.Tray({         // Create a new Tray, option is an object contains initial settings for the Tray.
-      icon: 'app/img/icon_16.png',     // Get or Set the icon of Tray, icon must a path to your icon file. It can be a relative path which points to an icon in your app, or an absolute path pointing to a file in user's system.
-      title: 'NWJS - Title',                 // On Mac title will be showed on status bar along with its icon, but it doesn't have effects on GTK and Windows, since the latter two platforms only support tray to be showed as icons.
+    // create new tray icon
+    tray = tray || new maingui.Tray({
+      icon: 'app/img/icon_16.png',
+      title: 'NWJS - Title',
       tooltip: 'NWJS - Tooltip'
     });
-    // Give it a menu
+    // give it a menu
     var menu = new maingui.Menu();
     viewbox.menuItems( menu );
     tray.menu = menu;
-    // Show window and remove tray when clicked
+    // show window when clicked
     tray.on('click', function() {
       mainwin.show();
     });
   },
   setGuiMenu: function(){
     var menu = new maingui.Menu({ 'type': 'menubar' });
+    // add the menu items - usefull for using menu on different things
     viewbox.menuItems( menu );
+    // assign the menu
     mainwin.menu = menu;
+    // listen to right-click event
     document.body.addEventListener('contextmenu', function(ev) { 
       ev.preventDefault();
       menu.popup(ev.x, ev.y);
@@ -167,5 +181,11 @@ var viewbox = {
         mainwin.show();
       } 
     }));
-  }
-}; viewbox.initialize( true );
+  },
+  focus: function( focus ) {
+    focused = focus;
+    var opacity = focus ? "FF" : "90";
+    var titlebar = $("#top-titlebar");
+    if (titlebar) titlebar.css('background', '#'+opacity+'26282c' );
+  },
+}; viewbox.init( true );
